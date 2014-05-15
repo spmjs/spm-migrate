@@ -9,16 +9,37 @@ var through = require('through2');
 var requires = require('requires');
 var decmdify = require('decmdify');
 var glob = require('glob');
+var beautify = require('gulp-beautify');
+var clean = require('gulp-clean');
+var Bump = require('ibump');
 
 module.exports = function migrate(options, cb) {
   var cwd = options.cwd;
   var pkg = require(join(cwd, 'package.json'));
 
-  pipe(
-    gulp.src(['**/*.+(js|json)', '!**/_site/**/*'], {cwd: cwd}),
+  var deTransport = pipe(
     gulpif(/(src|tests)\/.*\.js$/, replaceRequire(pkg, cwd)),
     gulpif(/(src|tests)\/.*\.js$/, decmdify({gulp: true})),
+    gulpif(/(src|tests)\/.*\.js$/, beautify({indentSize: 2}))
+  );
+
+  var deleteMakefile = pipe(
+    gulpif(join(cwd, 'Makefile'), clean()),
+    gulpif(join(cwd, 'Makefile'), stop())
+  );
+
+  var deleteDist = pipe(
+    gulpif(join(cwd, 'dist'), clean()),
+    gulpif(join(cwd, 'dist'), stop())
+  );
+
+  pipe(
+    gulp.src(['**/*', '.travis.yml', '!**/+(_site|dist|sea-modules)/**/*'], {cwd: cwd}),
+    deTransport,
+    deleteMakefile,
+    deleteDist,
     gulpif(join(cwd, 'package.json'), modifyPkg()),
+    gulpif(join(cwd, '.travis.yml'), travis()),
     gulp.dest(options.dest)
   )
   .on('error', cb)
@@ -81,6 +102,20 @@ function replaceRequire(pkg, cwd) {
   });
 }
 
+function travis() {
+  return through.obj(function(file, enc, callback) {
+    file.contents = fs.readFileSync(join(__dirname, 'template/travis.yml'));
+    this.push(file);
+    return callback();
+  });
+}
+
+function stop() {
+  return through.obj(function(file, enc, callback) {
+    return callback();
+  });
+}
+
 function modifyPkg() {
   var required = getRequire();
 
@@ -106,7 +141,8 @@ function modifyPkg() {
         continue;
       }
       var depPkg = alias[name].split('/');
-      deps[depPkg[0] + '-' + depPkg[1]] = depPkg[2];
+      var version = new Bump(depPkg[2]).minor().toString();
+      deps[depPkg[0] + '-' + depPkg[1]] = version;
     }
     delete spm.alias;
 

@@ -5,8 +5,12 @@
   "main": "index",
   "dependencies": {
     "decmdify": "~0.3.0",
+    "glob": "~3.2.9",
     "gulp": "~3.6.2",
+    "gulp-beautify": "~1.1.0",
+    "gulp-clean": "~0.2.4",
     "gulp-if": "~1.2.0",
+    "ibump": "~0.2.1",
     "multipipe": "~0.0.2",
     "requires": "~1.0.1",
     "through2": "~0.4.1"
