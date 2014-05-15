@@ -4,7 +4,7 @@
   "description": "migrate 2.x to 3.x",
   "main": "index",
   "dependencies": {
-    "decmdify": "~0.2.0",
+    "decmdify": "~0.3.0",
     "gulp": "~3.6.2",
     "gulp-if": "~1.2.0",
     "multipipe": "~0.0.2",
@@ -26,5 +26,8 @@
   "license": "MIT",
   "scripts": {
     "test": "make test"
+  },
+  "bin": {
+    "spm-migrate": "bin/spm-migrate"
   }
 }

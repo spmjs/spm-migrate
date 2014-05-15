@@ -1,42 +1,76 @@
 'use strict';
 
 var join = require('path').join;
+var fs = require('fs');
 var gulp = require('gulp');
 var gulpif = require('gulp-if');
 var pipe = require('multipipe');
 var through = require('through2');
-var decmdify = require('decmdify');
 var requires = require('requires');
+var decmdify = require('decmdify');
+var glob = require('glob');
 
 module.exports = function migrate(options, cb) {
   var cwd = options.cwd;
   var pkg = require(join(cwd, 'package.json'));
 
   pipe(
-    gulp.src('**/*.+(js|json)', {cwd: cwd}),
-    gulpif(join(cwd, 'package.json'), modifyPkg()),
-    gulpif(/(src|tests)\/.*\.js$/, replaceRequire(pkg)),
+    gulp.src(['**/*.+(js|json)', '!**/_site/**/*'], {cwd: cwd}),
+    gulpif(/(src|tests)\/.*\.js$/, replaceRequire(pkg, cwd)),
     gulpif(/(src|tests)\/.*\.js$/, decmdify({gulp: true})),
+    gulpif(join(cwd, 'package.json'), modifyPkg()),
     gulp.dest(options.dest)
   )
   .on('error', cb)
   .on('end', cb);
 };
 
-function replaceRequire(pkg) {
+function getRequire() {
+  var name = [];
+  glob.sync('+(src|tests)/**/*.js')
+    .forEach(function(file) {
+      var code = fs.readFileSync(file).toString();
+      var items = requires(code)
+        .map(function(item) {
+          return item.path;
+        });
+      name = name.concat(items);
+    });
+
+  return name.filter(function(item, index, arr) {
+    return index === arr.indexOf(item);
+  });
+}
+
+function getSource(cwd) {
+  return fs.readdirSync(cwd)
+    .filter(function(item) {
+      return fs.statSync(join(cwd, item)).isFile();
+    })
+    .map(function(item) {
+      return item.replace(/\.js$/, '');
+    });
+}
+
+function replaceRequire(pkg, cwd) {
+  var src = getSource(join(cwd, 'src'));
   var alias = pkg.spm.alias;
+  var replace = {
+    $: 'jquery',
+    expect: 'expect.js'
+  };
 
   return through.obj(function(file, enc, callback) {
     var code = file.contents.toString();
     code = requires(code, function(require){
       var name = require.path;
-      if (name === '$') {
-        name = 'jquery';
-      } else if (name === 'expect') {
-        name = 'expect.js';
+      if (replace[name]) {
+        name = replace[name];
       } else if (alias[name]) {
         var d = alias[name].split('/');
         if (d.length > 1) name = d[0] + '-' + d[1];
+      } else if (~src.indexOf(name)) {
+        name = '../src/' + name;
       }
       console.log('replace name ' + require.path + ' > ' + name);
       return 'require("' + name + '")';
@@ -48,6 +82,8 @@ function replaceRequire(pkg) {
 }
 
 function modifyPkg() {
+  var required = getRequire();
+
   return through.obj(function(file, enc, callback) {
     var pkg = JSON.parse(file.contents);
 
@@ -76,6 +112,7 @@ function modifyPkg() {
 
     spm.devDependencies = spm.devDependencies || {};
     spm.devDependencies['expect.js'] = '0.3.1';
+    if (~required.indexOf('sinon')) spm.devDependencies['sinon'] = '1.6.0';
 
     file.contents = new Buffer(JSON.stringify(pkg, null, 2));
     this.push(file);
