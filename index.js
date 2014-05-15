@@ -150,6 +150,8 @@ function modifyPkg() {
     spm.devDependencies['expect.js'] = '0.3.1';
     if (~required.indexOf('sinon')) spm.devDependencies['sinon'] = '1.6.0';
 
+    if (~required.indexOf('$')) spm.buildArgs = '--ignore jquery';
+
     file.contents = new Buffer(JSON.stringify(pkg, null, 2));
     this.push(file);
     return callback();
