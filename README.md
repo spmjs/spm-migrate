@@ -7,6 +7,7 @@ migrate 2.x to 3.x
 ## Install
 
 ```
+$ npm install spm@ninja -g
 $ npm install spm-migrate -g
 ```
 
@@ -15,6 +16,8 @@ $ npm install spm-migrate -g
 ```
 $ cd overlay
 $ spm-migrate
+$ spm install
+$ spm test
 ```
 
 It will overwrite the files which should be migrated.
