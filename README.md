@@ -13,8 +13,15 @@ $ npm install spm-migrate -g
 ## Usage
 
 ```
-var spm-migrate = require('spm-migrate');
+$ cd overlay
+$ spm-migrate
 ```
+
+It will overwrite the files which should be migrated.
+
+## What does it do?
+
+https://github.com/spmjs/spm/wiki/%E8%BF%81%E7%A7%BB-spm2-%E5%88%B0-spm3
 
 ## LISENCE
 
