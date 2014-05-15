@@ -127,6 +127,8 @@ function modifyPkg() {
     pkg.name = pkg.family + '-' + pkg.name;
     delete pkg.family;
 
+    pkg.version = new Bump(pkg.version).minor().toString();
+
     // output -> main
     var spm = pkg.spm;
     spm.main = 'src/' + spm.output[0];
