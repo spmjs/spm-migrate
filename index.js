@@ -94,7 +94,7 @@ function replaceRequire(pkg, cwd) {
         name = '../src/' + name;
       }
       console.log('replace name ' + require.path + ' > ' + name);
-      return 'require("' + name + '")';
+      return 'require(\'' + name + '\')';
     });
     file.contents = new Buffer(code);
     this.push(file);
