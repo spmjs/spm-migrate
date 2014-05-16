@@ -1,6 +1,6 @@
 {
   "name": "spm-migrate",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "migrate 2.x to 3.x",
   "main": "index",
   "dependencies": {
