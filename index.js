@@ -1,6 +1,7 @@
 'use strict';
 
 var join = require('path').join;
+var extname = require('path').extname;
 var fs = require('fs');
 var gulp = require('gulp');
 var gulpif = require('gulp-if');
@@ -76,6 +77,9 @@ function getSource(cwd) {
 function replaceRequire(pkg, cwd) {
   var src = getSource(join(cwd, 'src'));
   var alias = pkg.spm.alias;
+  for (var name in (pkg.spm.devAlias || {})) {
+    alias[name] = pkg.spm.devAlias[name];
+  }
   var replace = {
     $: 'jquery',
     expect: 'expect.js'
@@ -88,8 +92,7 @@ function replaceRequire(pkg, cwd) {
       if (replace[name]) {
         name = replace[name];
       } else if (alias[name]) {
-        var d = alias[name].split('/');
-        if (d.length > 1) name = d[0] + '-' + d[1];
+        name = getName(alias[name]);
       } else if (~src.indexOf(name)) {
         name = '../src/' + name;
       }
@@ -135,22 +138,20 @@ function modifyPkg() {
     delete spm.output;
 
     // alias -> dependencies
-    var deps = spm.dependencies = {};
-    var alias = spm.alias;
-    for (var name in alias) {
-      if (name === '$' && alias[name] === '$') {
-        deps['jquery'] = '1.7.2';
-        continue;
-      }
-      var depPkg = alias[name].split('/');
-      var version = new Bump(depPkg[2]).minor().toString();
-      deps[depPkg[0] + '-' + depPkg[1]] = version;
-    }
+    spm.dependencies = getDeps(spm.alias);
     delete spm.alias;
+    if (!spm.dependencies['handlebars-runtime'] && containExt(required, 'handlebars')) {
+      spm.dependencies['handlebars-runtime'] = '1.3.0';
+    }
 
-    spm.devDependencies = spm.devDependencies || {};
+    // devAlias -> devDependencies
+    spm.devDependencies = getDeps(spm.devAlias);
     spm.devDependencies['expect.js'] = '0.3.1';
     if (~required.indexOf('sinon')) spm.devDependencies['sinon'] = '1.6.0';
+    delete spm.devAlias;
+
+    // use default
+    delete pkg.tests;
 
     if (~required.indexOf('$')) spm.buildArgs = '--ignore jquery';
 
@@ -158,4 +159,53 @@ function modifyPkg() {
     this.push(file);
     return callback();
   });
+}
+
+function getDeps(alias) {
+  var deps = {};
+  for (var name in alias) {
+    var path = alias[name];
+
+    if (name === '$' && path === '$') {
+      deps['jquery'] = '1.7.2';
+      continue;
+    }
+
+    name = getName(path);
+
+    if (name === 'handlebars') {
+      deps['handlebars'] = '1.3.0';
+      continue;
+    }
+
+    if (/handlebars\/[0-9.]+\/runtime/.test(path)) {
+      deps['handlebars-runtime'] = '1.3.0';
+      continue;
+    }
+
+    var version = getVersion(path);
+    version = new Bump(version).minor().toString();
+    deps[name] = version;
+  }
+  return deps;
+}
+
+function getName(path) {
+  var s = path.split('/');
+  if (s.length > 1) {
+    return s[0] === 'gallery' ? s[1] : (s[0] + '-' + s[1]);
+  } else {
+    return path;
+  }
+}
+
+function getVersion(path) {
+  var s = path.split('/');
+  return s[2];
+}
+
+function containExt(list, ext) {
+  return ~list.map(function(file) {
+    return extname(file).substring(1);
+  }).indexOf(ext);
 }
