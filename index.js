@@ -138,14 +138,14 @@ function modifyPkg() {
     delete spm.output;
 
     // alias -> dependencies
-    spm.dependencies = getDeps(spm.alias);
+    spm.dependencies = getDeps(spm.alias || {});
     delete spm.alias;
     if (!spm.dependencies['handlebars-runtime'] && containExt(required, 'handlebars')) {
       spm.dependencies['handlebars-runtime'] = '1.3.0';
     }
 
     // devAlias -> devDependencies
-    spm.devDependencies = getDeps(spm.devAlias);
+    spm.devDependencies = getDeps(spm.devAlias || {});
     spm.devDependencies['expect.js'] = '0.3.1';
     if (~required.indexOf('sinon')) spm.devDependencies['sinon'] = '1.6.0';
     delete spm.devAlias;
