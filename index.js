@@ -153,6 +153,12 @@ function modifyPkg() {
     // use default
     delete pkg.tests;
 
+    // engines
+    spm.engines = {
+      'seajs': '2.2.1',
+      'seajs-text': '1.1.0'
+    };
+
     if (~required.indexOf('$')) spm.buildArgs = '--ignore jquery';
 
     file.contents = new Buffer(JSON.stringify(pkg, null, 2));
